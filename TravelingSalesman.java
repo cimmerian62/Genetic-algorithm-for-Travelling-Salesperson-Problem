@@ -2,6 +2,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.Scanner;
 /*
 course: CSC 320
 project: Assignment 1
@@ -33,7 +34,7 @@ class SalesmanGenome implements Comparable {
     }
     public void printGenome() {
         for (int i = 0; i < genome.size(); i++)
-            System.out.print(genome.get(i));
+            System.out.print((genome.get(i))+ "-");
     }
     
     public SalesmanGenome(List<Integer> permutationOfCities, int numberOfCities, int[][] adjacency, int startingCity) {
@@ -102,29 +103,19 @@ class Trvsm {
         this.targetFitness = targetFitness;
 
         generationSize = 100;
-        reproductionSize = 50;
-        maxIterations = 100;
-        mutationRate = 0.1f;
+        reproductionSize = 5;
+        maxIterations = 1000;
+        mutationRate = 0.05f;
     }
     
     public List<SalesmanGenome> selection(List<SalesmanGenome> population) { //select which paths to pass on to future generations
         List<SalesmanGenome> selected = new ArrayList<>();
-        int totalFitness = population.stream().map(SalesmanGenome::getFitness).mapToInt(Integer::intValue).sum(); //add all fitnesses
-        Random random = new Random();
         
+                
         for (int i=0; i < reproductionSize; i++) { 
-            float currentSum = 0;
-            int selectedValue = random.nextInt(totalFitness);
-            float recValue = (float) 1/selectedValue; //take a random value in the total fitness and divide one by it
-            
-            for (int j = 0; j < population.size(); j++) {
-                currentSum += (float) 1/population.get(i).getFitness(); //add up the one divided by thefitnesses to get a roullette wheel
-                if (currentSum >= recValue) { //if selected value is in the roullette edge of a path, it is returned, by dividing one by the
-                    selected.add(population.get(i)); //numbers we make it so that the smaller the path the greater chance it will be passed on
-                    break;
-                }
-            }
+            Collections.swap(population.subList(i, population.size()), population.indexOf(Collections.min(population)), i);
         }
+        selected = population.subList(0, reproductionSize);
         return selected;
     }
     
@@ -139,7 +130,7 @@ class Trvsm {
         // chosen to participate in crossover multiple times
         List<Integer> parent1Genome = new ArrayList<>(parents.get(0).getGenome());
         List<Integer> parent2Genome = new ArrayList<>(parents.get(1).getGenome());
-    
+        
         
         List<Integer> child1 = new ArrayList<>();
         List<Integer> child2 = new ArrayList<>();
@@ -148,12 +139,22 @@ class Trvsm {
             List<Integer> pick1 = new ArrayList<>();
             List<Integer> pick2 = new ArrayList<>();
             
+                    
             for (int i = breakpoint1; i <= breakpoint2; i++) { //the picks are the numbers between the breakpoints
                 pick1.add(parent1Genome.get(i));
                 pick2.add(parent2Genome.get(i));
             }
+            
+            
         // Creating child 1
-            for (int i = 0; i < parent2Genome.size(); i++) {
+            for (int k = breakpoint1; k < parent2Genome.size(); k++){
+                if (child1.size() == breakpoint1)
+                    for (int j = 0; j < pick1.size(); j++)
+                        child1.add(pick1.get(j));
+                if (!pick1.contains(parent2Genome.get(k)))
+                    child1.add(parent2Genome.get(k));
+            }
+            for (int i = 0; i < breakpoint1; i++) {
                 if (child1.size() == breakpoint1)
                     for (int j = 0; j < pick1.size(); j++)
                         child1.add(pick1.get(j));
@@ -161,11 +162,19 @@ class Trvsm {
                     child1.add(parent2Genome.get(i));
             }
             if (child1.size() == breakpoint1)
-                    for (int j = 0; j < pick1.size(); j++)
-                        child1.add(pick1.get(j));
+                for (int j = 0; j < pick1.size(); j++)
+                    child1.add(pick1.get(j));
+                
                 
         //create child 2
-            for (int i = 0; i < parent1Genome.size(); i++) {
+            for (int k = breakpoint1; k < parent1Genome.size(); k++){
+                if (child2.size() == breakpoint1)
+                    for (int j = 0; j < pick2.size(); j++)
+                        child2.add(pick2.get(j));
+                if (!pick2.contains(parent1Genome.get(k)))
+                    child2.add(parent1Genome.get(k));
+            }
+            for (int i = 0; i < breakpoint1; i++) {
                 if (child2.size() == breakpoint1)
                     for (int j = 0; j < pick2.size(); j++)
                         child2.add(pick2.get(j));
@@ -173,8 +182,8 @@ class Trvsm {
                     child2.add(parent1Genome.get(i));
             }
             if (child2.size() == breakpoint1)
-                    for (int j = 0; j < pick2.size(); j++)
-                        child2.add(pick2.get(j));
+                for (int j = 0; j < pick2.size(); j++)
+                    child2.add(pick2.get(j));
         }
         else { //if breakpoint1 is larger than breakpoint 2 we hav to wraparound
             List<Integer> pick1a = new ArrayList<>();//pick1a is pick on right side of the array
@@ -188,9 +197,12 @@ class Trvsm {
                 pick1b.add(parent1Genome.get(i));
             for (int i = breakpoint1; i < parent2Genome.size(); i++)
                 pick2a.add(parent2Genome.get(i));
-            for (int i = 0; i < breakpoint2; i++)
+            for (int i = 0; i <= breakpoint2; i++)
                 pick2b.add(parent2Genome.get(i));
+            
+            
             //child 1
+            
             for (int i = 0; i < pick1b.size(); i++)
                 child1.add(pick1b.get(i));
             for (int i = breakpoint1; i < parent2Genome.size(); i++)
@@ -275,7 +287,8 @@ class Trvsm {
             children.set(0, mutate(children.get(0)));
             children.set(1, mutate(children.get(1)));
             
-            generation.addAll(children);
+            generation.add(children.get(0));
+            generation.add(children.get(1));
             currentGenerationSize+=2;
         }
         return generation;
@@ -309,11 +322,11 @@ class Trvsm {
             globalBestGenome = Collections.min(population); //the best path is the one with the smallest fitness value
             System.out.println("generation "+i+" begins:");
             
-            for (int k = 0; k < population.size(); k++) {
-                population.get(k).printGenome();
-                System.out.println(); 
-            }
-            System.out.print("end generation "+ i + " The most fit individual has path 0");
+//            for (int k = 0; k < population.size(); k++) {
+//                population.get(k).printGenome();
+//                System.out.println(); 
+//            }
+            System.out.print("end generation "+ i + " The most fit individual has path 0-");
             globalBestGenome.printGenome();
             System.out.print("0");
             System.out.println(" with fitness: " + globalBestGenome.getFitness());
@@ -336,17 +349,47 @@ class Trvsm {
 public class TravelingSalesman {
     
     public static void main(String[] args) {
-        int numberOfCities = 5;
-        int[][] lengths = {
-                            {0, 14, 4, 10, 20},
-                            {14, 0, 7, 8, 7},
-                            {4, 5, 0, 7, 16},
-                            {11, 7, 9, 0, 2},
-                            {18, 7, 17, 4, 0}
-                            };
+        Random random = new Random();
+        Scanner in = new Scanner(System.in);
+        int numberOfCities;
+        String res = "";
+        do {
+            System.out.print("How many Cities are there?: ");
+            numberOfCities = in.nextInt();
+            while (numberOfCities < 2) {
+                System.out.println();
+                System.out.print("Invalid, try again: ");
+                numberOfCities = in.nextInt();
+            }
+            System.out.println();
+            int[][] lengths = new int[numberOfCities][numberOfCities];
+            for (int i = 0; i < numberOfCities; i++)
+                for (int j = 0; j < numberOfCities; j++) {
+                    if (j != i) {
+//                        System.out.print("Enter the distance from city "+(i+1)+" to city "+(j+1)+": ");
+                        lengths[i][j] = random.nextInt(9)+1;
+                    }
+                    else
+                        lengths[i][j] = 0;
+                }
+            Trvsm geneticAlgorithm = new Trvsm(numberOfCities, lengths, 0, 0);
+            geneticAlgorithm.optimize();
+            System.out.println();
+            System.out.print("Continue? y or n: ");
+            res = in.next();
+            
+                    
+        } while (res.toLowerCase().charAt(0) != 'n');
+////        int[][] lengths = {
+////                            {0, 14, 4, 10, 20},
+////                            {14, 0, 7, 8, 7},
+////                            {4, 5, 0, 7, 16},
+////                            {11, 7, 9, 0, 2},
+////                            {18, 7, 17, 4, 0}
+////                            };
         
-        Trvsm geneticAlgorithm = new Trvsm(numberOfCities, lengths, 0, 0);
-        SalesmanGenome result = geneticAlgorithm.optimize();
+        
+        
     }
     
 }
