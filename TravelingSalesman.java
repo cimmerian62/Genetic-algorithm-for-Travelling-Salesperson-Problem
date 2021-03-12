@@ -35,6 +35,7 @@ class SalesmanGenome implements Comparable {
     public void printGenome() {
         for (int i = 0; i < genome.size(); i++)
             System.out.print((genome.get(i))+ "-");
+        System.out.println();
     }
     
     public SalesmanGenome(List<Integer> permutationOfCities, int numberOfCities, int[][] adjacency, int startingCity) {
@@ -94,6 +95,7 @@ class Trvsm {
     private int[][] lengths;
     private int startingCity;
     private int targetFitness;
+    private int tournamentSize;
     
     public Trvsm(int numberOfCities, int[][] lengths, int startingCity, int targetFitness){
         this.numberOfCities = numberOfCities;
@@ -102,20 +104,33 @@ class Trvsm {
         this.startingCity = startingCity;
         this.targetFitness = targetFitness;
 
-        generationSize = 100;
-        reproductionSize = 5;
+        generationSize = 500;
+        reproductionSize = 100;
         maxIterations = 1000;
-        mutationRate = 0.05f;
+        mutationRate = 0.1f;
+        tournamentSize = 10;
     }
-    
+    public SalesmanGenome tourneyPop(List<SalesmanGenome> population) {
+        List<SalesmanGenome> tourney = new ArrayList<>();
+        Random rand = new Random();
+        for (int i= 0; i < tournamentSize; i++) {
+            tourney.add(population.get(rand.nextInt(population.size()))); 
+        }
+        return Collections.min(tourney);
+    }
     public List<SalesmanGenome> selection(List<SalesmanGenome> population) { //select which paths to pass on to future generations
         List<SalesmanGenome> selected = new ArrayList<>();
         
                 
         for (int i=0; i < reproductionSize; i++) { 
-            Collections.swap(population.subList(i, population.size()), population.indexOf(Collections.min(population)), i);
+            selected.add(tourneyPop(population));
         }
-        selected = population.subList(0, reproductionSize);
+        
+//        System.out.println();
+//        System.out.println("The ones that will reproduce are: ");
+//        for (int i = 0; i <selected.size(); i++) {
+//            selected.get(i).printGenome();
+//        }
         return selected;
     }
     
@@ -265,23 +280,23 @@ class Trvsm {
         }
         return salesman; 
     }
-    public List<SalesmanGenome> getParents(List<SalesmanGenome> population) {
+    public List<SalesmanGenome> getParents(List<SalesmanGenome> selected) {
         Random random = new Random(); //pick two random parents out of the selected population
         List<SalesmanGenome> parents = new ArrayList<>();
-        int p1 = random.nextInt(population.size());
-        int p2 = random.nextInt(population.size());
-        parents.add(population.get(p1));
-        parents.add(population.get(p2));
+        int p1 = random.nextInt(selected.size());
+        int p2 = random.nextInt(selected.size());
+        parents.add(selected.get(p1));
+        parents.add(selected.get(p2));
         return parents;
     }
     
-    public List<SalesmanGenome> createGeneration(List<SalesmanGenome> population){
+    public List<SalesmanGenome> createGeneration(List<SalesmanGenome> selected){
         List<SalesmanGenome> generation = new ArrayList<>();
         int currentGenerationSize = 0;
         
         while(currentGenerationSize < generationSize){
             
-            List<SalesmanGenome> parents = getParents(population);
+            List<SalesmanGenome> parents = getParents(selected);
             List<SalesmanGenome> children = crossover(parents);
             
             children.set(0, mutate(children.get(0)));
@@ -306,13 +321,13 @@ class Trvsm {
         List<SalesmanGenome> population = initialPopulation();
         SalesmanGenome globalBestGenome = population.get(0);
         
-        System.out.println("The initial population is:");
-        for (int j = 0; j < population.size(); j++) {
-                population.get(j).printGenome();
-                System.out.println();
-        }
-        System.out.println("end initial population");
-        System.out.println();
+//        System.out.println("The initial population is:");
+//        for (int j = 0; j < population.size(); j++) {
+//                population.get(j).printGenome();
+//                System.out.println();
+//        }
+//        System.out.println("end initial population");
+//        System.out.println();
         
         for(int i=0; i < maxIterations; i++){
             List<SalesmanGenome> selected = selection(population);
@@ -328,8 +343,9 @@ class Trvsm {
 //            }
             System.out.print("end generation "+ i + " The most fit individual has path 0-");
             globalBestGenome.printGenome();
-            System.out.print("0");
-            System.out.println(" with fitness: " + globalBestGenome.getFitness());
+            System.out.println("0");
+            
+            System.out.println("Most Fit indivisual has fitness: " + globalBestGenome.getFitness());
             
             System.out.print("The average fitness for this generation is: "); //print out the whole generations average fitness
             int avgFit = 0;
